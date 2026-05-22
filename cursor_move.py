@@ -42,8 +42,8 @@ _L_IRIS  = 473   # left iris centre
 # Tunable defaults
 # ---------------------------------------------------------------------------
 SMOOTHING = 15      # moving-average window (frames)
-SPEED_H   = 4000.0  # pixels/second per unit of horizontal eye displacement
-SPEED_V   = 8000.0  # pixels/second per unit of vertical eye displacement
+SPEED_H   = 5500.0  # pixels/second per unit of horizontal eye displacement
+SPEED_V   = 16000.0  # pixels/second per unit of vertical eye displacement
 DEAD_ZONE = 0.008   # eye displacement fraction — cursor stops inside this radius
 
 mp_face_mesh      = mp.solutions.face_mesh
