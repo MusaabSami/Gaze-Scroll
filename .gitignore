@@ -4,8 +4,8 @@ venv/
 env/
 
 # Project docs to keep out of version control
-techstack.md
-project requirement.md
+TECH_STACK.md
+PROJECT_REQUIREMENTS.md
 
 # Python
 __pycache__/
