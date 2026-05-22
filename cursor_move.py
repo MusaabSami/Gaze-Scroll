@@ -41,10 +41,11 @@ _L_IRIS  = 473   # left iris centre
 # ---------------------------------------------------------------------------
 # Tunable defaults
 # ---------------------------------------------------------------------------
-SMOOTHING = 15      # moving-average window (frames)
-SPEED_H   = 5500.0  # pixels/second per unit of horizontal eye displacement
-SPEED_V   = 16000.0  # pixels/second per unit of vertical eye displacement
-DEAD_ZONE = 0.008   # eye displacement fraction — cursor stops inside this radius
+SMOOTHING    = 15      # moving-average window (frames)
+SPEED_H      = 5500.0  # pixels/second per unit of horizontal eye displacement
+SPEED_V      = 16000.0 # pixels/second per unit of vertical eye displacement
+DEAD_ZONE    = 0.008   # eye displacement fraction — cursor stops inside this radius
+DWELL_FREEZE = 0.5     # seconds gaze must stay in dead zone to re-anchor neutral
 
 mp_face_mesh      = mp.solutions.face_mesh
 mp_drawing        = mp.solutions.drawing_utils
@@ -88,10 +89,11 @@ def main():
     h_buf = collections.deque(maxlen=SMOOTHING)
     v_buf = collections.deque(maxlen=SMOOTHING)
 
-    neutral_h = None
-    neutral_v = None
-    cur_x     = sw // 2
-    cur_y     = sh // 2
+    neutral_h    = None
+    neutral_v    = None
+    cur_x        = sw // 2
+    cur_y        = sh // 2
+    stable_since = None
     pyautogui.moveTo(cur_x, cur_y)
 
     debug     = True
@@ -138,11 +140,22 @@ def main():
                     rel_h = smooth_h - neutral_h
                     rel_v = smooth_v - neutral_v
 
-                    # Velocity: eye displacement drives cursor speed, dead zone stops it
-                    if abs(rel_h) > DEAD_ZONE:
-                        cur_x = max(0, min(sw - 1, cur_x + int(-rel_h * SPEED_H * dt)))
-                    if abs(rel_v) > DEAD_ZONE:
-                        cur_y = max(0, min(sh - 1, cur_y + int(-rel_v * SPEED_V * dt)))
+                    in_dead_zone = abs(rel_h) < DEAD_ZONE and abs(rel_v) < DEAD_ZONE
+
+                    if in_dead_zone:
+                        if stable_since is None:
+                            stable_since = now
+                        elif now - stable_since >= DWELL_FREEZE:
+                            # Re-anchor: cursor is locked here, neutral resets to current gaze
+                            neutral_h    = smooth_h
+                            neutral_v    = smooth_v
+                            stable_since = None
+                    else:
+                        stable_since = None
+                        if abs(rel_h) > DEAD_ZONE:
+                            cur_x = max(0, min(sw - 1, cur_x + int(-rel_h * SPEED_H * dt)))
+                        if abs(rel_v) > DEAD_ZONE:
+                            cur_y = max(0, min(sh - 1, cur_y + int(-rel_v * SPEED_V * dt)))
                     pyautogui.moveTo(cur_x, cur_y)
 
                     if debug:
@@ -150,6 +163,12 @@ def main():
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
                         cv2.putText(frame, f"Eye V: {rel_v:+.3f}", (10, 120),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                        if stable_since is not None:
+                            pct = min(1.0, (now - stable_since) / DWELL_FREEZE)
+                            cv2.rectangle(frame, (10, 145), (130, 160), (60, 60, 60), -1)
+                            cv2.rectangle(frame, (10, 145), (10 + int(120 * pct), 160), (0, 210, 0), -1)
+                            cv2.putText(frame, "Freeze", (135, 158),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 210, 0), 1)
 
                 if debug:
                     mp_drawing.draw_landmarks(
@@ -178,8 +197,9 @@ def main():
             if key == ord("q"):
                 break
             elif key == ord("r"):
-                neutral_h = None
-                neutral_v = None
+                neutral_h    = None
+                neutral_v    = None
+                stable_since = None
                 h_buf.clear()
                 v_buf.clear()
             elif key == ord("d"):
