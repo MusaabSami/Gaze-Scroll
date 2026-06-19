@@ -1,73 +1,68 @@
 # Gaze Scroll
 
-Hands-free cursor control using eye tracking via webcam. No extra hardware required — just a standard webcam and Python.
+Hands-free cursor control and clicking using head pose via webcam. No extra hardware required — just a standard webcam and Python.
 
 ## How It Works
 
-MediaPipe Face Mesh detects 478 facial landmarks including iris centres in real time. The iris position within each eye socket is normalized to a ratio, smoothed over a moving average window, and compared against a neutral baseline. The deviation from neutral drives the cursor at a speed proportional to how far you look — the further from centre, the faster it moves.
-
-## Project Phases
-
-| Phase | File | Status |
-|-------|------|--------|
-| 1 | `landmark_demo.py` | Done — live face mesh + eyebrow overlay |
-| 2 | `cursor_move.py` | Done — iris-driven cursor movement |
-| 3 | `eyebrow_click.py` | Planned — eyebrow raise → left click |
-| 4 | `gazescroll.py` | Planned — integrated app |
-| 5 | `settings.py` + `config.json` | Planned — settings UI |
-| 6 | Polish | Planned — cooldowns, refined dead zone |
+MediaPipe Face Mesh detects 478 facial landmarks in real time. The nose tip landmark is used as a stable proxy for head orientation — its normalised position in the frame shifts predictably as you turn or tilt your head. That displacement from a neutral baseline drives the cursor at a speed proportional to how far you move — the further from centre, the faster it moves. Returning to the neutral zone stops the cursor. Raising both eyebrows triggers a left click.
 
 ## Setup
 
 ```bash
 python -m venv venv
 venv\Scripts\activate
-pip install opencv-python mediapipe pyautogui screeninfo
+pip install -r requirements.txt
 ```
 
 ## Running
 
 ```bash
-# Phase 1 — landmark visualiser
-python landmark_demo.py
-
-# Phase 2 — cursor control
-python cursor_move.py
+python face_move.py
 ```
 
-## Controls (cursor_move.py)
+Hold your head level and look straight at the camera for ~1 second on startup — neutral is captured automatically.
+
+## Controls
 
 | Key | Action |
 |-----|--------|
-| `R` | Reset neutral — recalibrate from current eye position |
-| `D` | Toggle debug overlay (iris tracking lines + eye displacement values) |
+| `R` | Reset neutral — recalibrate from current head position |
+| `D` | Toggle debug overlay |
 | `Q` | Quit |
 
-## Current Settings
+## Clicking
 
-These are the tuned values in `cursor_move.py` as of Phase 2:
+Raise both eyebrows and hold for `0.15 s` to fire a left click. The cursor freezes as soon as a raise is detected so the click always lands on the intended target.
+
+## Settings
 
 | Constant | Value | Description |
 |----------|-------|-------------|
 | `SMOOTHING` | `15` | Moving-average window in frames — higher = smoother but more lag |
-| `SPEED_H` | `4000.0` | Horizontal cursor speed — pixels/second per unit of eye displacement |
-| `SPEED_V` | `8000.0` | Vertical cursor speed — higher than horizontal to compensate for the narrower vertical range of eye movement |
-| `DEAD_ZONE` | `0.008` | Eye displacement fraction — cursor stops when gaze is within this radius of neutral |
+| `SPEED_H` | `4000.0` | Horizontal cursor speed (pixels/second per unit of head displacement) |
+| `SPEED_V` | `4000.0` | Vertical cursor speed |
+| `DEAD_ZONE` | `0.008` | Head displacement fraction — cursor stops within this radius of neutral |
+| `DWELL_FREEZE` | `0.5` | Seconds in dead zone before neutral re-anchors to current head position |
+| `BROW_THRESHOLD` | `0.03` | Eyebrow raise delta (fraction of face height) required to trigger a click |
+| `BROW_FREEZE_THRESH` | `0.022` | Lower threshold at which cursor freezes in anticipation of a click |
+| `BROW_HOLD` | `0.15` | Seconds eyebrows must stay raised before click fires |
+| `BROW_COOLDOWN` | `0.8` | Minimum seconds between clicks |
 
 ### Movement Model
 
-**Velocity mode**: eye displacement from neutral drives cursor *speed*, not absolute position. Looking slightly off-centre moves the cursor slowly; looking further moves it faster. Looking back to neutral stops it. The cursor stays where it is when your gaze returns to the dead zone.
+**Velocity mode**: head displacement from neutral drives cursor *speed*, not absolute position. A small tilt moves the cursor slowly; a larger tilt moves it faster. Returning to the dead zone stops it immediately. After `DWELL_FREEZE` seconds of stillness the neutral point re-anchors, so the cursor stays put without any sustained effort.
 
 ### Calibration Tips
 
-- Run `cursor_move.py` and look straight at the camera for ~1 second before moving your eyes — neutral is captured automatically on the first stable frame.
-- Press `R` any time to recalibrate from your current gaze.
-- If the cursor moves too fast or slow, adjust `SPEED_H` / `SPEED_V` at the top of `cursor_move.py`.
-- If the cursor drifts when your eyes are still, increase `DEAD_ZONE` slightly (e.g. `0.012`).
+- If the cursor drifts when your head is still, increase `DEAD_ZONE` slightly (e.g. `0.012`).
+- If small movements feel unresponsive, lower `DEAD_ZONE` (e.g. `0.006`).
+- If the cursor moves too fast or slow, adjust `SPEED_H` / `SPEED_V`.
+- If clicks fire accidentally, raise `BROW_THRESHOLD` (e.g. `0.04`) or increase `BROW_HOLD`.
+- Press `R` any time to recalibrate if the cursor starts drifting after repositioning.
 
 ## Tech Stack
 
-- [MediaPipe](https://developers.google.com/mediapipe) — face mesh + iris landmarks (landmark 468/473)
+- [MediaPipe](https://developers.google.com/mediapipe) — face mesh landmarks (nose tip + eyebrow points)
 - [OpenCV](https://opencv.org/) — webcam capture and debug overlay
-- [pyautogui](https://pyautogui.readthedocs.io/) — cursor movement
+- [pyautogui](https://pyautogui.readthedocs.io/) — cursor movement and clicking
 - [screeninfo](https://github.com/rr-/screeninfo) — monitor resolution detection

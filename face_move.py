@@ -46,11 +46,12 @@ _FACE_BOTTOM = 152  # chin
 SMOOTHING    = 15      # moving-average window (frames)
 SPEED_H      = 4000.0  # pixels/second per unit of horizontal head displacement
 SPEED_V      = 4000.0 # pixels/second per unit of vertical head displacement
-DEAD_ZONE    = 0.008   # head displacement fraction — cursor stops inside this radius
-DWELL_FREEZE    = 0.5   # seconds head must stay in dead zone to re-anchor neutral
-BROW_THRESHOLD  = 0.03 # brow raise delta (fraction of face height) to trigger
-BROW_HOLD       = 0.15  # seconds brow must stay raised before click fires
-BROW_COOLDOWN   = 0.8   # seconds before another click can fire after one
+DEAD_ZONE          = 0.008  # head displacement fraction — cursor stops inside this radius
+DWELL_FREEZE       = 0.5    # seconds head must stay in dead zone to re-anchor neutral
+BROW_THRESHOLD     = 0.03   # brow raise delta (fraction of face height) to trigger click
+BROW_FREEZE_THRESH = 0.022  # lower threshold — freeze cursor early in the raise to prevent drift
+BROW_HOLD          = 0.15   # seconds brow must stay raised before click fires
+BROW_COOLDOWN      = 0.8    # seconds before another click can fire after one
 
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing   = mp.solutions.drawing_utils
@@ -154,7 +155,8 @@ def main():
                 brow_delta = brow_ratio - neutral_brow
 
                 # --- Cursor movement ---
-                in_dead_zone = abs(rel_h) < DEAD_ZONE and abs(rel_v) < DEAD_ZONE
+                in_dead_zone     = abs(rel_h) < DEAD_ZONE and abs(rel_v) < DEAD_ZONE
+                attempting_click = brow_delta > BROW_FREEZE_THRESH
 
                 if in_dead_zone:
                     if stable_since is None:
@@ -165,10 +167,12 @@ def main():
                         stable_since = None
                 else:
                     stable_since = None
-                    if abs(rel_h) > DEAD_ZONE:
-                        cur_x = max(0, min(sw - 1, cur_x + int(-rel_h * SPEED_H * dt)))
-                    if abs(rel_v) > DEAD_ZONE:
-                        cur_y = max(0, min(sh - 1, cur_y + int(rel_v * SPEED_V * dt)))
+                    # Freeze cursor while brow is raised so the click lands accurately
+                    if not attempting_click:
+                        if abs(rel_h) > DEAD_ZONE:
+                            cur_x = max(0, min(sw - 1, cur_x + int(-rel_h * SPEED_H * dt)))
+                        if abs(rel_v) > DEAD_ZONE:
+                            cur_y = max(0, min(sh - 1, cur_y + int(rel_v * SPEED_V * dt)))
                 pyautogui.moveTo(cur_x, cur_y)
 
                 # --- Eyebrow click ---
