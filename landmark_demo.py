@@ -77,7 +77,7 @@ def main():
             cv2.putText(frame, "Q - quit", (10, h - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1)
 
-            cv2.imshow("GazeClick - Landmark Demo", frame)
+            cv2.imshow("Gaze Scroll - Landmark Demo", frame)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break

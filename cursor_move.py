@@ -191,7 +191,7 @@ def main():
             cv2.putText(frame, "R-reset  D-debug  Q-quit", (10, hf - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (160, 160, 160), 1)
 
-            cv2.imshow("GazeClick - Cursor Move", frame)
+            cv2.imshow("Gaze Scroll - Cursor Move", frame)
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):

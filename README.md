@@ -1,4 +1,4 @@
-# GazeClick
+# Gaze Scroll
 
 Hands-free cursor control using eye tracking via webcam. No extra hardware required — just a standard webcam and Python.
 
@@ -13,7 +13,7 @@ MediaPipe Face Mesh detects 478 facial landmarks including iris centres in real 
 | 1 | `landmark_demo.py` | Done — live face mesh + eyebrow overlay |
 | 2 | `cursor_move.py` | Done — iris-driven cursor movement |
 | 3 | `eyebrow_click.py` | Planned — eyebrow raise → left click |
-| 4 | `gazeclick.py` | Planned — integrated app |
+| 4 | `gazescroll.py` | Planned — integrated app |
 | 5 | `settings.py` + `config.json` | Planned — settings UI |
 | 6 | Polish | Planned — cooldowns, refined dead zone |
 
