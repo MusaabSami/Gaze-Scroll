@@ -1,4 +1,4 @@
-# Gaze Scroll
+# Face Scroll
 
 Hands-free cursor control and clicking using head pose via webcam. No extra hardware required — just a standard webcam and Python.
 
